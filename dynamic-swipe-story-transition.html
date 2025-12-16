@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Dynamic Swipe Story Transition</title>
+<style>
+  :root{
+    --bg:#070a10;
+    --text:#eef2ff;
+    --muted:rgba(238,242,255,.72);
+    --border:rgba(255,255,255,.10);
+    --a:#FFD100;
+    --b:#3b82f6;
+    --c:#ff3b30;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100vh; display:grid; place-items:center;
+    background:
+      radial-gradient(1100px 700px at 12% 10%, rgba(59,130,246,.18), transparent 60%),
+      radial-gradient(900px 600px at 88% 20%, rgba(255,209,0,.10), transparent 55%),
+      linear-gradient(180deg, #04060b, var(--bg));
+    color:var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Helvetica Neue";
+  }
+
+  .stage{
+    width:min(860px, 92vw);
+    border-radius:26px;
+    border:1px solid var(--border);
+    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    box-shadow: 0 30px 90px rgba(0,0,0,.55);
+    backdrop-filter: blur(10px);
+    padding:28px;
+  }
+
+  .top{
+    display:flex; align-items:baseline; justify-content:space-between; gap:14px; flex-wrap:wrap;
+    margin-bottom:18px;
+  }
+  h1{margin:0; font-size:22px; letter-spacing:.2px}
+  .meta{margin:0; font-size:12px; color:var(--muted); letter-spacing:.08em; text-transform:uppercase; font-weight:800}
+
+  /* Story frame */
+  .frame{
+    width:min(520px, 100%);
+    aspect-ratio: 9 / 16;
+    margin: 0 auto;
+    border-radius:26px;
+    border:1px solid rgba(255,255,255,.12);
+    background: rgba(0,0,0,.22);
+    overflow:hidden;
+    position:relative;
+  }
+
+  .slide{
+    position:absolute; inset:0;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-end;
+    padding:22px;
+    gap:10px;
+  }
+
+  .slide h2{
+    margin:0;
+    font-size:28px;
+    letter-spacing:.2px;
+  }
+  .slide p{
+    margin:0;
+    color:var(--muted);
+    font-size:13px;
+    line-height:1.5;
+    max-width:40ch;
+  }
+
+  .s1{
+    background:
+      radial-gradient(700px 500px at 20% 20%, rgba(255,209,0,.24), transparent 55%),
+      radial-gradient(700px 500px at 80% 60%, rgba(59,130,246,.18), transparent 55%),
+      linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  }
+  .s2{
+    background:
+      radial-gradient(700px 500px at 25% 35%, rgba(59,130,246,.26), transparent 55%),
+      radial-gradient(700px 500px at 80% 30%, rgba(255,59,48,.18), transparent 55%),
+      linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  }
+  .s3{
+    background:
+      radial-gradient(700px 500px at 25% 30%, rgba(255,59,48,.22), transparent 55%),
+      radial-gradient(700px 500px at 75% 70%, rgba(255,209,0,.16), transparent 55%),
+      linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  }
+
+  /* Swipe layer */
+  .wipe{
+    position:absolute; inset:0;
+    transform: translateX(110%);
+    background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.11), rgba(255,255,255,0));
+    opacity:.0;
+    pointer-events:none;
+  }
+
+  /* Animation (3.6s total) */
+  .slide.enter{
+    animation: enter 600ms cubic-bezier(.2,.9,.2,1) forwards;
+  }
+  .slide.exit{
+    animation: exit 600ms cubic-bezier(.2,.9,.2,1) forwards;
+  }
+  @keyframes enter{
+    from{ transform: translateX(18%); filter: blur(6px); opacity:0; }
+    to{ transform: translateX(0); filter: blur(0); opacity:1; }
+  }
+  @keyframes exit{
+    from{ transform: translateX(0); filter: blur(0); opacity:1; }
+    to{ transform: translateX(-18%); filter: blur(6px); opacity:0; }
+  }
+
+  .wipe.go{
+    animation: wipe 600ms ease forwards;
+  }
+  @keyframes wipe{
+    0%{ transform: translateX(110%); opacity:0; }
+    20%{ opacity:1; }
+    100%{ transform: translateX(-110%); opacity:0; }
+  }
+
+  .controls{
+    margin-top:16px;
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  button{
+    appearance:none; border:1px solid rgba(255,255,255,.14);
+    background: rgba(255,255,255,.06);
+    color: var(--text);
+    padding:10px 12px;
+    border-radius:12px;
+    font-weight:900;
+    cursor:pointer;
+  }
+  button.primary{
+    border-color: rgba(255,209,0,.28);
+    background: rgba(255,209,0,.14);
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .slide.enter,.slide.exit,.wipe.go{ animation:none !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="top">
+      <h1>Dynamic Swipe Story Transition</h1>
+      <p class="meta">Duration: 3.6s • Social & Marketing</p>
+    </div>
+
+    <div class="frame" id="frame" aria-label="Story transition demo">
+      <div class="wipe" id="wipe" aria-hidden="true"></div>
+
+      <div class="slide s1" id="s1">
+        <h2>Story Panel One</h2>
+        <p>Energetic swipe transition with clean easing, built for story ads and social promos.</p>
+      </div>
+      <div class="slide s2" id="s2" style="opacity:0">
+        <h2>Story Panel Two</h2>
+        <p>Fast, readable motion that keeps text legible and brand-friendly.</p>
+      </div>
+      <div class="slide s3" id="s3" style="opacity:0">
+        <h2>Story Panel Three</h2>
+        <p>Swipe + blur + settle. Designed for repeatable sequences.</p>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="primary" id="play">Play 3.6s Sequence</button>
+      <button id="next">Next</button>
+      <button id="reset">Reset</button>
+    </div>
+  </div>
+
+<script>
+  const wipe = document.getElementById('wipe');
+  const slides = [document.getElementById('s1'), document.getElementById('s2'), document.getElementById('s3')];
+  let idx = 0;
+  let locked = false;
+
+  function show(i){
+    slides.forEach((s,k)=>{ s.style.opacity = (k===i) ? "1" : "0"; s.classList.remove('enter','exit'); });
+    idx = i;
+  }
+
+  function doTransition(){
+    if (locked) return;
+    locked = true;
+
+    const current = slides[idx];
+    const next = slides[(idx+1)%slides.length];
+
+    // wipe flash
+    wipe.classList.remove('go'); void wipe.offsetWidth; wipe.classList.add('go');
+
+    // exit current
+    current.classList.remove('enter','exit'); void current.offsetWidth; current.classList.add('exit');
+
+    // enter next
+    next.style.opacity = "1";
+    next.classList.remove('enter','exit'); void next.offsetWidth; next.classList.add('enter');
+
+    setTimeout(()=>{
+      current.style.opacity = "0";
+      idx = (idx+1)%slides.length;
+      locked = false;
+    }, 650);
+  }
+
+  document.getElementById('next').addEventListener('click', doTransition);
+  document.getElementById('reset').addEventListener('click', ()=>{ locked=false; show(0); });
+
+  // Play full 3.6s sequence (3 transitions spaced)
+  document.getElementById('play').addEventListener('click', ()=>{
+    if (locked) return;
+    show(0);
+    locked = true;
+
+    setTimeout(()=>{ locked=false; doTransition(); }, 400);
+    setTimeout(()=>{ doTransition(); }, 1600);
+    setTimeout(()=>{ doTransition(); }, 2800);
+  });
+
+  // init
+  show(0);
+</script>
+</body>
+</html>
